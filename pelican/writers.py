@@ -108,6 +108,7 @@ class Writer(object):
 
         def _write_file(template, localcontext, output_path, name):
             """Render the template write the file."""
+            localcontext['output_file'] = name
             old_locale = locale.setlocale(locale.LC_ALL)
             locale.setlocale(locale.LC_ALL, str('C'))
             try:

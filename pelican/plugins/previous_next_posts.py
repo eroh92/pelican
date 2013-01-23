@@ -37,4 +37,4 @@ def add_previous_next_posts(generator):
 
 
 def register():
-    signals.article_generator_finalized.connect(add_related_posts)
+    signals.article_generator_finalized.connect(add_previous_next_posts)

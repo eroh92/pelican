@@ -1,7 +1,7 @@
 from pelican import signals
 
 """
-Related posts plugin for Pelican
+Previous and next posts plugin for Pelican
 ================================
 
 Adds next_post and previous_post variables to article's context

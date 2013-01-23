@@ -28,7 +28,7 @@ Usage
 """
 
 
-def add_related_posts(generator):
+def add_previous_next_posts(generator):
     for i, article in enumerate(generator.articles):
         if i > 0:
             article.next_post = generator.articles[i - 1]

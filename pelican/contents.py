@@ -170,6 +170,8 @@ class Page(object):
                     logger.warning("Unable to find {fn}, skipping url"
                                     " replacement".format(fn=value))
 
+            if what == 'SITEURL':
+                origin = "%s%s" % (siteurl, value)
             return m.group('markup') + m.group('quote') + origin \
                     + m.group('quote')
 

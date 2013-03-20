@@ -3,6 +3,8 @@ import flickr_api
 from datetime import datetime
 from pelican import signals
 
+from memorised.decorators import memorise
+
 """
 Flickr plugin for pelican
 ================================
@@ -65,19 +67,26 @@ def initialize_flickr_api(generator):
         if not generator.settings.has_key('FLICKR_EXTRA_PARAMS'):
             generator.settings['FLICKR_EXTRA_PARAMS'] = \
                 {'extras': 'url_l, url_m'}
-            
+
+
+def _get_photoset_data(photoset_id, extra_params):
+    photoset = flickr_api.Photoset(id=photoset_id)
+    photoset.load()
+    photos = photoset.getPhotos(**extra_params)
+    return (photoset, photos)
+
 
 def add_flickr_metadata(generator, metadata):
     if has_flickr_settings(generator) and metadata.has_key('flickrset'):
-        photoset = flickr_api.Photoset(id=metadata['flickrset'])
-        photoset.load()
+        photoset, photos = \
+            _get_photoset_data(metadata['flickrset'],
+                               generator.settings['FLICKR_EXTRA_PARAMS'])
         metadata['photoset'] = photoset
-        metadata['photos'] = \
-            photoset.getPhotos(**generator.settings['FLICKR_EXTRA_PARAMS'])
+        metadata['photos'] = photos
         if not metadata.has_key('title'):
             metadata['title'] = photoset.title
         if not metadata.has_key('thumbnail'):
-            for photo in metadata['photos']:
+            for photo in photos:
                 if photo.isprimary == '1':
                     metadata['thumbnail'] = photo.url_l
         if not metadata.has_key('date'):

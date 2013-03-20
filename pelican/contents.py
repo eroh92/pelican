@@ -288,7 +288,8 @@ class URLWrapper(object):
 
 
 class Category(URLWrapper):
-    pass
+    def __init__(self, name, *args, **kwargs):
+        super(Category, self).__init__(name.strip(), *args, **kwargs)
 
 
 class Tag(URLWrapper):

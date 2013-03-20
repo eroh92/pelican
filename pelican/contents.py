@@ -155,6 +155,7 @@ class Page(object):
             # categories, tags, etc. in the future, but let's keep things
             # simple for now.
             if what == 'filename':
+                value, sep, hash = value.partition("#")
                 if value.startswith('/'):
                     value = value[1:]
                 else:
@@ -162,10 +163,11 @@ class Page(object):
                     value = self.get_relative_filename(
                         os.path.join(self.relative_dir, value)
                     )
-
                 if value in self._context['filenames']:
                     origin = '/'.join((siteurl,
                              self._context['filenames'][value].url))
+                    if hash:
+                        origin = "%s#%s" % (origin, hash)
                 else:
                     logger.warning("Unable to find {fn}, skipping url"
                                     " replacement".format(fn=value))

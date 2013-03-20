@@ -11,9 +11,6 @@ from codecs import open
 from pelican import signals, contents
 
 TXT_HEADER = """{0}/index.html
-{0}/archives.html
-{0}/tags.html
-{0}/categories.html
 """
 
 XML_HEADER = """<?xml version="1.0" encoding="utf-8"?>
@@ -171,10 +168,7 @@ class SitemapGenerator(object):
                                                'date',
                                                'url'])
 
-            for standard_page_url in ['index.html',
-                                      'archives.html',
-                                      'tags.html',
-                                      'categories.html']:
+            for standard_page_url in ['']:
                 fake = FakePage(status='published',
                                 date=self.now,
                                 url=standard_page_url)

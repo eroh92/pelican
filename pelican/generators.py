@@ -235,6 +235,8 @@ class ArticlesGenerator(Generator):
                             self.settings['TRANSLATION_FEED_RSS'] % lang,
                             feed_type='rss')
 
+        signals.article_generate_feeds.send(self, writer=writer)
+
     def generate_articles(self, write):
         """Generate the articles."""
         for article in chain(self.translations, self.articles):
@@ -310,6 +312,7 @@ class ArticlesGenerator(Generator):
         self.generate_categories(write)
         self.generate_authors(write)
         self.generate_drafts(write)
+        signals.article_generate_pages.send(self, write=write)
 
     def generate_context(self):
         """Add the articles into the shared context"""

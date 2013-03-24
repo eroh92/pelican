@@ -5,6 +5,8 @@ from operator import attrgetter
 from collections import defaultdict
 
 from pelican import signals, contents
+from pelican.utils import slugify
+
 
 class Country(contents.URLWrapper):
     def __init__(self, name, *args, **kwargs):
@@ -19,7 +21,7 @@ class City(contents.URLWrapper):
         self.city = city.strip()
         self.country = Country(country, *args, **kwargs)
         super(City, self).__init__(name, *args, **kwargs)
-        self.slug = "%s/%s"
+        self.slug = "%s/%s" % (slugify(self.city), slugify(self.country))
 
 
 def init_locations(article_generator):

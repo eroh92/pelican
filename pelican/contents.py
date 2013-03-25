@@ -180,6 +180,7 @@ class Page(object):
 
         return hrefs.sub(replacer, content)
 
+    @memoized
     def get_content(self, siteurl):
         return self._update_content(
                 self._get_content() if hasattr(self, "_get_content")

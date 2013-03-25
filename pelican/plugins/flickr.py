@@ -103,6 +103,7 @@ def article_update(generator, article):
         template = generator.get_template('flickr')
         output = template.render(article=article, **article.settings)
         article._content = article._content.replace(flickr_var, output)
+        article.get_content.func.im_self.cache.clear()
 
 
 def register():

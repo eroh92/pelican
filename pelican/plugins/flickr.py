@@ -96,7 +96,10 @@ def add_flickr_metadata(generator, metadata):
 
 def article_update(generator, article):
     flickr_var = '|flickr_images|'  
-    if article.content.find(flickr_var) > -1:
+  
+    if (has_flickr_settings(generator)
+            and hasattr(article, 'flickrset')
+            and article._content.find(flickr_var) > -1):
         template = generator.get_template('flickr')
         output = template.render(article=article, **article.settings)
         article._content = article._content.replace(flickr_var, output)

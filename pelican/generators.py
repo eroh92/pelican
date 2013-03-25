@@ -353,6 +353,7 @@ class ArticlesGenerator(Generator):
             signals.article_generate_context.send(self, metadata=metadata)
             article = Article(content, metadata, settings=self.settings,
                               filename=f, context=self.context)
+            signals.article_update.send(self, article=article)
             if not is_valid_content(article, f):
                 continue
 

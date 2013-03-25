@@ -94,6 +94,18 @@ def add_flickr_metadata(generator, metadata):
                 datetime.fromtimestamp(float(photoset.date_create))
 
 
+def article_update(generator, article):
+    flickr_var = '|flickr_images|'  
+  
+    if (has_flickr_settings(generator)
+            and hasattr(article, 'flickrset')
+            and article._content.find(flickr_var) > -1):
+        template = generator.get_template('flickr')
+        output = template.render(article=article, **article.settings)
+        article._content = article._content.replace(flickr_var, output)
+
+
 def register():
     signals.article_generator_init.connect(initialize_flickr_api)
+    signals.article_update.connect(article_update)
     signals.article_generate_context.connect(add_flickr_metadata)

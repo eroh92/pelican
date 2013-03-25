@@ -170,7 +170,8 @@ class Page(object):
                         origin = "%s#%s" % (origin, hash)
                 else:
                     logger.warning("Unable to find {fn}, skipping url"
-                                    " replacement".format(fn=value))
+                                    " replacement in {file}"
+                                    .format(fn=value, file=self.filename))
 
             if what == 'SITEURL':
                 origin = "%s%s" % (siteurl, value)
@@ -179,7 +180,6 @@ class Page(object):
 
         return hrefs.sub(replacer, content)
 
-    @memoized
     def get_content(self, siteurl):
         return self._update_content(
                 self._get_content() if hasattr(self, "_get_content")

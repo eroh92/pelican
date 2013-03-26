@@ -17,6 +17,9 @@ class Location(contents.URLWrapper):
         self.slug = self._location_slug
         self.children = {}
 
+    def __len__(self):
+        return len(self.children)
+
     def __getitem__(self, key):
         return self.children[key]
 
@@ -64,7 +67,7 @@ def make_location(name, child=None, *args, **kwargs):
         location = Location(name, *args, **kwargs)
         location_storage[name] = location
     location = location_storage[name]
-    if child:
+    if child is not None:
         location[child.name] = child
     return location
 
@@ -92,6 +95,8 @@ def add_locations_to_generator(article_generator):
                     if not location.has_parent:
                         article_generator.location_hierarchy[location.name] = \
                             location
+    article_generator.context['locations'] = \
+            article_generator.location_hierarchy
 
 
 def generate_locations_pages(article_generator, write):

@@ -199,11 +199,11 @@ class ArticlesGenerator(Generator):
             arts.sort(key=attrgetter('date'), reverse=True)
             if self.settings.get('CATEGORY_FEED_ATOM'):
                 writer.write_feed(arts, self.context,
-                                  self.settings['CATEGORY_FEED_ATOM'] % cat)
+                                  self.settings['CATEGORY_FEED_ATOM'] % cat.slug)
 
             if self.settings.get('CATEGORY_FEED_RSS'):
                 writer.write_feed(arts, self.context,
-                                  self.settings['CATEGORY_FEED_RSS'] % cat,
+                                  self.settings['CATEGORY_FEED_RSS'] % cat.slug,
                                   feed_type='rss')
 
         if self.settings.get('TAG_FEED_ATOM') \
@@ -212,11 +212,11 @@ class ArticlesGenerator(Generator):
                 arts.sort(key=attrgetter('date'), reverse=True)
                 if self.settings.get('TAG_FEED_ATOM'):
                     writer.write_feed(arts, self.context,
-                                      self.settings['TAG_FEED_ATOM'] % tag)
+                                      self.settings['TAG_FEED_ATOM'] % tag.slug)
 
                 if self.settings.get('TAG_FEED_RSS'):
                     writer.write_feed(arts, self.context,
-                                      self.settings['TAG_FEED_RSS'] % tag,
+                                      self.settings['TAG_FEED_RSS'] % tag.slug,
                                       feed_type='rss')
 
         if self.settings.get('TRANSLATION_FEED_ATOM') or \
@@ -234,6 +234,8 @@ class ArticlesGenerator(Generator):
                     writer.write_feed(items, self.context,
                             self.settings['TRANSLATION_FEED_RSS'] % lang,
                             feed_type='rss')
+
+        signals.article_generate_feeds.send(self, writer=writer)
 
     def generate_articles(self, write):
         """Generate the articles."""
@@ -310,6 +312,7 @@ class ArticlesGenerator(Generator):
         self.generate_categories(write)
         self.generate_authors(write)
         self.generate_drafts(write)
+        signals.article_generate_pages.send(self, write=write)
 
     def generate_context(self):
         """Add the articles into the shared context"""

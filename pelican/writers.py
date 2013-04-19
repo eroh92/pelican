@@ -12,6 +12,7 @@ from jinja2 import Markup
 from pelican.paginator import Paginator
 from pelican.utils import get_relative_path, set_date_tzinfo
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,84 +88,20 @@ class Writer(object):
         finally:
             locale.setlocale(locale.LC_ALL, old_locale)
 
-    def write_file(self, name, template, context, relative_urls=True,
-        paginated=None, **kwargs):
-        """Render the template and write the file.
-
-        :param name: name of the file to output
-        :param template: template to use to generate the content
-        :param context: dict to pass to the templates.
-        :param relative_urls: use relative urls or absolutes ones
-        :param paginated: dict of article list to paginate - must have the
-            same length (same list in different orders)
-        :param **kwargs: additional variables to pass to the templates
-        """
-
-        if name is False:
-            return
-        elif not name:
-            # other stuff, just return for now
-            return
-
-        def _write_file(template, localcontext, output_path, name):
-            """Render the template write the file."""
-            localcontext['output_file'] = name
-            old_locale = locale.setlocale(locale.LC_ALL)
-            locale.setlocale(locale.LC_ALL, str('C'))
-            try:
-                output = template.render(localcontext)
-            finally:
-                locale.setlocale(locale.LC_ALL, old_locale)
-            filename = os.sep.join((output_path, name))
-            try:
-                os.makedirs(os.path.dirname(filename))
-            except Exception:
-                pass
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(output)
-            logger.info('writing %s' % filename)
-
-        localcontext = context.copy()
-        if relative_urls:
-            relative_path = get_relative_path(name)
-            context['localsiteurl'] = relative_path
-            localcontext['SITEURL'] = relative_path
-
-        localcontext.update(kwargs)
-
-        # check paginated
-        paginated = paginated or {}
-        if paginated:
-            # pagination needed, init paginators
-            paginators = {}
-            for key in paginated.keys():
-                object_list = paginated[key]
-
-                if self.settings.get('DEFAULT_PAGINATION'):
-                    paginators[key] = Paginator(object_list,
-                        self.settings.get('DEFAULT_PAGINATION'),
-                        self.settings.get('DEFAULT_ORPHANS'))
-                else:
-                    paginators[key] = Paginator(object_list, len(object_list))
-
-            # generated pages, and write
-            name_root, ext = os.path.splitext(name)
-            for page_num in range(list(paginators.values())[0].num_pages):
-                paginated_localcontext = localcontext.copy()
-                for key in paginators.keys():
-                    paginator = paginators[key]
-                    page = paginator.page(page_num + 1)
-                    paginated_localcontext.update(
-                            {'%s_paginator' % key: paginator,
-                             '%s_page' % key: page})
-                if page_num > 0:
-                    paginated_name = '%s%s%s' % (
-                        name_root, page_num + 1, ext)
-                else:
-                    paginated_name = name
-
-                _write_file(template, paginated_localcontext, self.output_path,
-                    paginated_name)
-        else:
-            # no pagination
-            _write_file(template, localcontext, self.output_path, name)
+    def write_file(self, template, localcontext, output_path, name):
+        """Render the template write the file."""
+        localcontext['output_file'] = name
+        old_locale = locale.setlocale(locale.LC_ALL)
+        locale.setlocale(locale.LC_ALL, str('C'))
+        try:
+            output = template.render(localcontext)
+        finally:
+            locale.setlocale(locale.LC_ALL, old_locale)
+        filename = os.sep.join((output_path, name))
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except Exception:
+            pass
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(output)
+        logger.info('writing %s' % filename)

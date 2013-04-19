@@ -149,6 +149,7 @@ class Pelican(object):
                 self.theme,
                 self.output_path,
                 self.markup,
+                self.get_writer()
             ) for cls in self.get_generator_classes()
         ]
 

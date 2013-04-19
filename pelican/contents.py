@@ -248,12 +248,17 @@ class Article(Page):
 class Quote(Page):
     base_properties = ('author', 'date')
 
+
 @python_2_unicode_compatible
 class URLWrapper(object):
-    def __init__(self, name, settings):
+    def __init__(self, name, settings, setting_var=None):
         self.name = name
         self.slug = slugify(self.name)
         self.settings = settings
+        if not setting_var:
+            setting_var = self.__class__.__name__.upper()
+        self.setting_var = setting_var
+
 
     def as_dict(self):
         return self.__dict__
@@ -267,25 +272,62 @@ class URLWrapper(object):
     def __str__(self):
         return self.name
 
-    def _from_settings(self, key, get_page_name=False):
+    def _from_settings(self, key, get_page_name=False, page=1):
         """Returns URL information as defined in settings. 
         When get_page_name=True returns URL without anything after {slug}
         e.g. if in settings: CATEGORY_URL="cat/{slug}.html" this returns "cat/{slug}"
         Useful for pagination."""
-        setting = "%s_%s" % (self.__class__.__name__.upper(), key)
-        value = self.settings[setting]
+        value = self.settings[self.generate_setting_var(key)]
         if not isinstance(value, six.string_types):
             logger.warning('%s is set to %s' % (setting, value))
             return value
         else:
             if get_page_name:
-                return os.path.splitext(value)[0].format(**self.as_dict())
+                return os.path.splitext(value)[0].format(page=page,
+                                                         **self.as_dict())
             else:
-                return value.format(**self.as_dict())
+                return value.format(page=page, **self.as_dict())
 
-    page_name = property(functools.partial(_from_settings, key='URL', get_page_name=True))
-    url = property(functools.partial(_from_settings, key='URL'))
-    save_as = property(functools.partial(_from_settings, key='SAVE_AS'))
+    def generate_setting_var(self, key):
+        return "%s_%s" % (self.setting_var, key)
+
+    @property
+    def page_name(self):
+        return self._from_settings(key='URL', get_page_name=True)
+
+    @property
+    def url(self):
+        return self._from_settings(key='URL')
+    
+    @property
+    def save_as(self):
+        return self._from_settings(key='SAVE_AS')
+
+    @property
+    def async_template(self):
+        return self._from_settings(key='ASYNC_TEMPLATE')
+
+    def async_url(self, page=None):
+        return self._from_settings(key='ASYNC_URL',
+                                   page=getattr(page, 'number', None))
+
+    def async_save_as(self, page=None):
+        return self._from_settings(key='ASYNC_SAVE_AS',
+                                   page=getattr(page, 'number', None))
+
+    def paginated_url(self, page):
+        if page.number is 1:
+            return self.url
+        else:
+            return self._from_settings(key="PAGINATED_URL",
+                                       page=page.number)
+
+    def paginated_save_as(self, page):
+        if page.number is 1:
+            return self.save_as
+        else:
+            return self._from_settings(key="PAGINATED_SAVE_AS",
+                                       page=page.number)
 
 
 class Category(URLWrapper):

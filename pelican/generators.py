@@ -18,9 +18,11 @@ from jinja2 import (Environment, FileSystemLoader, PrefixLoader, ChoiceLoader,
                     BaseLoader, TemplateNotFound)
 
 from pelican.contents import Article, Page, Category, StaticContent, \
-        is_valid_content
+        is_valid_content, URLWrapper
 from pelican.readers import read_file
-from pelican.utils import copy, process_translations, mkdir_p
+from pelican.utils import copy, process_translations, mkdir_p, \
+        get_relative_path
+from pelican.paginator import Paginator
 from pelican import signals
 
 
@@ -32,7 +34,7 @@ class Generator(object):
 
     def __init__(self, *args, **kwargs):
         for idx, item in enumerate(('context', 'settings', 'path', 'theme',
-                'output_path', 'markup')):
+                'output_path', 'markup', 'writer')):
             setattr(self, item, args[idx])
 
         for arg, value in kwargs.items():
@@ -108,6 +110,82 @@ class Generator(object):
                     files.append(os.sep.join((root, f)))
         return files
 
+    def write_file(self, name, template, context, relative_urls=True,
+        paginated=None, urlwrapper=None, **kwargs):
+        """Render the template and write the file.
+
+        :param name: name of the file to output
+        :param template: template to use to generate the content
+        :param context: dict to pass to the templates.
+        :param relative_urls: use relative urls or absolutes ones
+        :param paginated: dict of article list to paginate - must have the
+            same length (same list in different orders)
+        :param **kwargs: additional variables to pass to the templates
+        """
+
+        if name is False:
+            return
+        elif not name:
+            # other stuff, just return for now
+            return
+
+        localcontext = context.copy()
+        if relative_urls:
+            relative_path = get_relative_path(name)
+            context['localsiteurl'] = relative_path
+            localcontext['SITEURL'] = relative_path
+
+        localcontext.update(kwargs)
+
+        # check paginated
+        paginated = paginated or {}
+        if paginated:
+            # pagination needed, init paginators
+            paginators = {}
+            for key in paginated.keys():
+                object_list = paginated[key]
+
+                if self.settings.get('DEFAULT_PAGINATION'):
+                    paginators[key] = Paginator(object_list,
+                        self.settings.get('DEFAULT_PAGINATION'),
+                        self.settings.get('DEFAULT_ORPHANS'))
+                else:
+                    paginators[key] = Paginator(object_list, len(object_list))
+
+            # generated pages, and write
+            name_root, ext = os.path.splitext(name)
+            for page_num in range(list(paginators.values())[0].num_pages):
+                paginated_localcontext = localcontext.copy()
+                for key in paginators.keys():
+                    paginator = paginators[key]
+                    page = paginator.page(page_num + 1)
+                    if page.has_next():
+                        next_page = paginator.page(page_num + 2)
+                        page.next_url = urlwrapper.paginated_url(next_page)
+                        if self.settings['GENERATE_ASYNC_FILES']:
+                            page.next_async_url = urlwrapper.async_url(next_page)
+
+                    if page.has_previous():
+                        previous_page = paginator.page(page_num)
+                        page.previous_url = urlwrapper.paginated_url(previous_page)
+                        if self.settings['GENERATE_ASYNC_FILES']:
+                            page.previous_async_url = \
+                                urlwrapper.async_url(previous_page)
+
+                    paginated_localcontext.update(
+                            {'%s_paginator' % key: paginator,
+                             '%s_page' % key: page})
+                paginated_name = urlwrapper.paginated_save_as(paginated_localcontext['articles_page'])
+
+                self.writer.write_file(template, paginated_localcontext, self.output_path,
+                    paginated_name)
+                if self.settings['GENERATE_ASYNC_FILES']:
+                    self.writer.write_file(self.get_template(urlwrapper.async_template), paginated_localcontext,
+                                self.output_path, urlwrapper.async_save_as(paginated_localcontext['articles_page']))
+        else:
+            # no pagination
+            self.writer.write_file(template, localcontext, self.output_path, name)
+
     def add_filename(self, content):
         location = os.path.relpath(os.path.abspath(content.filename),
                                    os.path.abspath(self.path))
@@ -148,7 +226,7 @@ class TemplatePagesGenerator(Generator):
             try:
                 template = self.env.get_template(source)
                 rurls = self.settings.get('RELATIVE_URLS')
-                writer.write_file(dest, template, self.context, rurls)
+                self.write_file(dest, template, self.context, rurls)
             finally:
                 del self.env.loader.loaders[0]
 
@@ -250,14 +328,16 @@ class ArticlesGenerator(Generator):
             paginated = {}
             if template in PAGINATED_TEMPLATES:
                 paginated = {'articles': self.articles, 'dates': self.dates}
-            save_as = self.settings.get("%s_SAVE_AS" % template.upper(),
-                                                        '%s.html' % template)
-            if not save_as:
+            urlwrapper = URLWrapper(template,
+                                    self.settings,
+                                    template.upper())
+
+            if not urlwrapper.save_as:
                 continue
 
-            write(save_as, self.get_template(template),
+            write(urlwrapper.save_as, self.get_template(template),
                   self.context, blog=True, paginated=paginated,
-                  page_name=template)
+                  urlwrapper=urlwrapper, page_name=template)
 
     def generate_tags(self, write):
         """Generate Tags pages."""
@@ -266,7 +346,7 @@ class ArticlesGenerator(Generator):
             articles.sort(key=attrgetter('date'), reverse=True)
             dates = [article for article in self.dates if article in articles]
             write(tag.save_as, tag_template, self.context, tag=tag,
-                articles=articles, dates=dates,
+                articles=articles, dates=dates, urlwrapper=tag,
                 paginated={'articles': articles, 'dates': dates},
                 page_name=tag.page_name)
 
@@ -276,7 +356,7 @@ class ArticlesGenerator(Generator):
         for cat, articles in self.categories:
             dates = [article for article in self.dates if article in articles]
             write(cat.save_as, category_template, self.context,
-                category=cat, articles=articles, dates=dates,
+                category=cat, articles=articles, dates=dates, urlwrapper=cat,
                 paginated={'articles': articles, 'dates': dates},
                 page_name=cat.page_name)
 
@@ -286,7 +366,7 @@ class ArticlesGenerator(Generator):
         for aut, articles in self.authors:
             dates = [article for article in self.dates if article in articles]
             write(aut.save_as, author_template, self.context,
-                author=aut, articles=articles, dates=dates,
+                author=aut, articles=articles, dates=dates, urlwrapper=aut,
                 paginated={'articles': articles, 'dates': dates},
                 page_name=aut.page_name)
 
@@ -299,7 +379,7 @@ class ArticlesGenerator(Generator):
 
     def generate_pages(self, writer):
         """Generate the pages on the disk"""
-        write = partial(writer.write_file,
+        write = partial(self.write_file,
                         relative_urls=self.settings.get('RELATIVE_URLS'))
 
         # to minimize the number of relative path stuff modification
@@ -484,8 +564,8 @@ class PagesGenerator(Generator):
     def generate_output(self, writer):
         for page in chain(self.translations, self.pages,
                             self.hidden_translations, self.hidden_pages):
-            writer.write_file(page.save_as, self.get_template(page.template),
-                    self.context, page=page,
+            self.write_file(page.save_as, self.get_template(page.template),
+                    self.context, page=page, urlwrapper=page,
                     relative_urls=self.settings.get('RELATIVE_URLS'))
 
 

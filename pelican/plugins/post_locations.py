@@ -109,6 +109,7 @@ def generate_locations_pages(article_generator, write):
               location_template,
               article_generator.context,
               location=location,
+              urlwrapper=location,
               articles=articles,
               dates=dates,
               paginated={'articles': articles, 'dates': dates},

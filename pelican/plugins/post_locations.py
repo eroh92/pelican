@@ -3,10 +3,11 @@ from __future__ import unicode_literals
 
 from operator import attrgetter
 from collections import defaultdict
+from urllib import urlencode
 
 from pelican import signals, contents
 from pelican.utils import slugify
-
+from pelican.contents import Article
 
 class Location(contents.URLWrapper):
     def __init__(self, name, *args, **kwargs):

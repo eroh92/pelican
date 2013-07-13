@@ -38,7 +38,6 @@ def article_update(generator, article):
                 content = content.replace(old, new)
 
         article._content = content
-        article.get_content.func.im_self.cache.clear()
     
 
 def register():

@@ -34,14 +34,13 @@ class Writer(object):
         return feed
 
     def _add_item_to_the_feed(self, feed, item):
-
         title = Markup(item.title).striptags()
         feed.add_item(
             title=title,
             link='%s/%s' % (self.site_url, item.url),
             unique_id='tag:%s,%s:%s' % (self.site_url.replace('http://', ''),
                                         item.date.date(), item.url),
-            description=item.get_content(self.site_url),
+            description=item.get_content(self.site_url, content_type='FEED'),
             categories=item.tags if hasattr(item, 'tags') else None,
             author_name=getattr(item, 'author', ''),
             pubdate=set_date_tzinfo(item.date,

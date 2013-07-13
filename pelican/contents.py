@@ -180,10 +180,9 @@ class Page(object):
 
         return hrefs.sub(replacer, content)
 
-    @memoized
-    def get_content(self, siteurl):
+    def get_content(self, siteurl, content_type='HTML'):
         return self._update_content(
-                self._get_content() if hasattr(self, "_get_content")
+                self._get_content(content_type) if hasattr(self, "_get_content")
                     else self._content,
                 siteurl)
 
@@ -243,6 +242,13 @@ class Page(object):
 class Article(Page):
     mandatory_properties = ('title', 'date', 'category')
     default_template = 'article'
+
+    def _get_content(self, content_type):
+        modifiers = self.settings.get('%s_CONTENT_MODIFIERS' % content_type, [])
+        content = self._content
+        for modifier in modifiers:
+            content = modifier(self, content)
+        return content
 
 
 class Quote(Page):

@@ -318,8 +318,9 @@ class ArticlesGenerator(Generator):
     def generate_articles(self, write):
         """Generate the articles."""
         for article in chain(self.translations, self.articles):
+            article._context['content'] = article.content
             write(article.save_as, self.get_template(article.template),
-                self.context, article=article, category=article.category)
+                article._context, article=article, category=article.category)
 
     def generate_direct_templates(self, write):
         """Generate direct templates pages"""

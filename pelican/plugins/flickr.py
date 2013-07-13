@@ -1,3 +1,4 @@
+import logging
 import re
 
 import flickr_api
@@ -7,6 +8,8 @@ from functools import partial
 from pelican import signals
 
 from memorised.decorators import memorise
+
+logger = logging.getLogger(__name__)
 
 """
 Flickr plugin for pelican
@@ -61,7 +64,7 @@ Usage
 photo_cache = {}
 
 def _get_photo(id, extra_params):
-    print 'lookup photo %s' % id
+    logger.debug('lookup flicker photo #%s' % id)
     id = unicode(id)
     if not photo_cache.has_key(id):
         photo = flickr_api.Photo(id=id, **extra_params)
@@ -126,24 +129,25 @@ def _get_url(photo, max_height, max_width):
         url = data['source']
         height = int(data['height'])
         width = int(data['width'])
-
         if (height <= max_height and
             width <= max_width):
-            return url
+            return (url, height, width)
 
 def thumbnail_replace(photo, generator, *args, **kwargs):
-    photo_url = _get_url(photo,
+    photo_url, height, width = _get_url(photo,
                          generator.settings['FLICKR_THUMBNAIL_MAX_HEIGHT'],
                          generator.settings['FLICKR_THUMBNAIL_MAX_WIDTH'])
     return photo_url
 
 def insert_image(photo, article, generator, *args, **kwargs):
     template = generator.get_template('flickr_image')
-    photo_url = _get_url(photo,
+    photo_url, height, width = _get_url(photo,
                          generator.settings['FLICKR_MAX_HEIGHT'],
                          generator.settings['FLICKR_MAX_WIDTH'])
     return template.render(photo=photo,
                            photo_url=photo_url,
+                           photo_height=height,
+                           photo_width=width,
                            article=article,
                            **generator.settings)
 
@@ -167,7 +171,6 @@ def article_update(generator, article):
         template = generator.get_template('flickr_images')
         output = template.render(article=article, **article.settings)
         article._content = article._content.replace(flickr_var, output)
-        article.get_content.func.im_self.cache.clear()
     if has_flickr_settings(generator):
         if hasattr(article, 'thumbnail'):
             thumbnail = \
@@ -182,7 +185,6 @@ def article_update(generator, article):
                           article._content)
         if new_content is not article._content:
             article._content = new_content
-            article.get_content.func.im_self.cache.clear()
 
 
 def register():

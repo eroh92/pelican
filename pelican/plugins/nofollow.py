@@ -64,7 +64,6 @@ def article_update(generator, article):
     if changed:
         article._content = html.tostring(article_html, encoding='unicode', method='xml')
         article._content = article._content.replace(u'\xa0', '&nbsp;')
-        article.get_content.func.im_self.cache.clear()
     
 
 def register():

@@ -76,6 +76,7 @@ def make_location(name, child=None, *args, **kwargs):
 def init_locations(article_generator):
     article_generator.locations = defaultdict(set)
     article_generator.location_hierarchy = {}
+    article_generator.all_locations = set()
 
 
 def parse_metadata(article_generator, metadata):
@@ -93,11 +94,14 @@ def add_locations_to_generator(article_generator):
             for locations in article.locations:
                 for location in locations.all_locations:
                     article_generator.locations[location].add(article)
+                    article_generator.all_locations.add(location)
                     if not location.has_parent:
                         article_generator.location_hierarchy[location.name] = \
                             location
     article_generator.context['locations'] = \
             article_generator.location_hierarchy
+    article_generator.context['all_locations'] = \
+            article_generator.all_locations
 
 
 def generate_locations_pages(article_generator, write):

@@ -9,6 +9,7 @@ from logging import warning, info
 from codecs import open
 
 from pelican import signals, contents
+from pelican.plugins.post_locations import Location
 
 TXT_HEADER = """{0}/index.html
 """
@@ -129,6 +130,9 @@ class SitemapGenerator(object):
         if isinstance(page, contents.Article):
             pri = self.priorities['articles']
             chfreq = self.changefreqs['articles']
+        elif isinstance(page, Location) and self.priorities['locations'] and self.changefreqs['locations']:
+            pri = self.priorities['locations']
+            chfreq = self.changefreqs['locations']
         elif isinstance(page, contents.Page):
             pri = self.priorities['pages']
             chfreq = self.changefreqs['pages']
@@ -150,6 +154,9 @@ class SitemapGenerator(object):
                 + [ c for (c, a) in self.context['categories']] \
                 + [ t for (t, a) in self.context['tags']] \
                 + [ a for (a, b) in self.context['authors']]
+
+        if self.context.has_key('all_locations'):
+            pages += self.context['all_locations']
 
         for article in self.context['articles']:
             pages += article.translations

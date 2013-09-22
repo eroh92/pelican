@@ -50,7 +50,7 @@ class Page(object):
         # set metadata as attributes
         for key, value in local_metadata.items():
             setattr(self, key.lower(), value)
-
+        
         # also keep track of the metadata attributes available
         self.metadata = local_metadata
 

@@ -102,7 +102,15 @@ def add_locations_to_generator(article_generator):
             article_generator.location_hierarchy
     article_generator.context['all_locations'] = \
             article_generator.all_locations
-
+    
+    for article in article_generator.articles:
+        if article.status == "published" and hasattr(article, "locations"):
+            related_by_location = defaultdict(set)
+            for locations in article.locations:
+                for location in locations.all_locations:
+                    related_by_location[location].update(
+                        article_generator.locations[location])
+            article.related_by_location = related_by_location
 
 def generate_locations_pages(article_generator, write):
     location_template = article_generator.get_template('location')

@@ -133,6 +133,9 @@ def _get_url(photo, max_height, max_width):
             width <= max_width):
             return (url, height, width)
 
+def square_thumb_replace(photo, generator, *args, **kwargs):
+    return photo.getSizes()['Large Square']['source']
+
 def thumbnail_replace(photo, generator, *args, **kwargs):
     photo_url, height, width = _get_url(photo,
                          generator.settings['FLICKR_THUMBNAIL_MAX_HEIGHT'],
@@ -173,12 +176,19 @@ def article_update(generator, article):
         article._content = article._content.replace(flickr_var, output)
     if has_flickr_settings(generator):
         if hasattr(article, 'thumbnail'):
+            article.square_thumbnail = article.thumbnail
             thumbnail = \
                 flickr_re.sub(flickr_replace(generator,
                                              article,
                                              thumbnail_replace),
                               article.thumbnail)
+            square_thumbnail = \
+                flickr_re.sub(flickr_replace(generator,
+                                             article,
+                                             square_thumb_replace),
+                              article.square_thumbnail)
             article.thumbnail = thumbnail
+            article.square_thumbnail = square_thumbnail
             article.metadata['thumbnail'] = thumbnail
         new_content = \
             flickr_re.sub(flickr_replace(generator, article, insert_image),

@@ -120,7 +120,7 @@ def add_flickr_metadata(generator, metadata):
                 datetime.fromtimestamp(float(photoset.date_create))
 
 
-flickr_re = re.compile(r"[<p>]*\|flickr:(?P<flickr_id>.*?)\|[</p>]*")
+flickr_re = re.compile(r"(<p>)?\|flickr:(?P<flickr_id>.*?)\|(</p>)?")
 
 def _get_url(photo, max_height, max_width):
     for size, data in sorted(photo.getSizes().items(),

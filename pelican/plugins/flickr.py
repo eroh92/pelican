@@ -3,6 +3,8 @@ import re
 
 import flickr_api
 
+from time import sleep
+from httplib import BadStatusLine
 from datetime import datetime
 from functools import partial
 from pelican import signals
@@ -143,16 +145,21 @@ def thumbnail_replace(photo, generator, *args, **kwargs):
     return photo_url
 
 def insert_image(photo, article, generator, *args, **kwargs):
-    template = generator.get_template('flickr_image')
-    photo_url, height, width = _get_url(photo,
-                         generator.settings['FLICKR_MAX_HEIGHT'],
-                         generator.settings['FLICKR_MAX_WIDTH'])
-    return template.render(photo=photo,
-                           photo_url=photo_url,
-                           photo_height=height,
-                           photo_width=width,
-                           article=article,
-                           **generator.settings)
+    try:
+        template = generator.get_template('flickr_image')
+        photo_url, height, width = _get_url(photo,
+                             generator.settings['FLICKR_MAX_HEIGHT'],
+                             generator.settings['FLICKR_MAX_WIDTH'])
+        return template.render(photo=photo,
+                               photo_url=photo_url,
+                               photo_height=height,
+                               photo_width=width,
+                               article=article,
+                               **generator.settings)
+    except BadStatusLine:
+        print 'Flickr is dogging it... sleeping for 5 seconds.'
+        sleep(5)
+        insert_image(photo, article, generator, *args, **kwargs)
 
 def flickr_replace(generator, article, replacer_func):
     def replacer(m, generator, article, replacer_func):

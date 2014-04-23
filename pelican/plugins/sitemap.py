@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import collections
 import os.path
+import math
 
 from datetime import datetime
 from logging import warning, info
@@ -16,7 +17,8 @@ TXT_HEADER = """{0}/index.html
 
 XML_HEADER = """<?xml version="1.0" encoding="utf-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"
+xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 "
+"http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"
 xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 """
 
@@ -76,7 +78,8 @@ class SitemapGenerator(object):
             chfreqs = config.get('changefreqs')
 
             if fmt not in ('xml', 'txt'):
-                warning("sitemap plugin: SITEMAP['format'] must be `txt' or `xml'")
+                warning("sitemap plugin: SITEMAP['format'] must be `txt' or "
+                        "`xml'")
                 warning("sitemap plugin: Setting SITEMAP['format'] on `xml'")
             elif fmt == 'txt':
                 self.format = fmt
@@ -84,7 +87,7 @@ class SitemapGenerator(object):
 
             valid_keys = ('articles', 'indexes', 'pages')
             valid_chfreqs = ('always', 'hourly', 'daily', 'weekly', 'monthly',
-                    'yearly', 'never')
+                             'yearly', 'never')
 
             if isinstance(pris, dict):
                 # We use items for Py3k compat. .iteritems() otherwise
@@ -105,16 +108,17 @@ class SitemapGenerator(object):
                 for k, v in chfreqs.items():
                     if k in valid_keys and v not in valid_chfreqs:
                         default = self.changefreqs[k]
-                        warning("sitemap plugin: invalid changefreq `{0}'".format(v))
-                        warning("sitemap plugin: setting SITEMAP['changefreqs']"
+                        warning("sitemap plugin: invalid "
+                                "changefreq `{0}'".format(v))
+                        warning("sitemap plugin: setting "
+                                "SITEMAP['changefreqs']"
                                 "['{0}'] on '{1}'".format(k, default))
                         chfreqs[k] = default
                 self.changefreqs.update(chfreqs)
             elif chfreqs is not None:
-                warning("sitemap plugin: SITEMAP['changefreqs'] must be a dict")
+                warning("sitemap plugin: SITEMAP['changefreqs'] "
+                        "must be a dict")
                 warning("sitemap plugin: using the default values")
-
-
 
     def write_url(self, page, fd):
 
@@ -130,7 +134,8 @@ class SitemapGenerator(object):
         if isinstance(page, contents.Article):
             pri = self.priorities['articles']
             chfreq = self.changefreqs['articles']
-        elif isinstance(page, Location) and self.priorities['locations'] and self.changefreqs['locations']:
+        elif isinstance(page, Location) and self.priorities['locations'] \
+                and self.changefreqs['locations']:
             pri = self.priorities['locations']
             chfreq = self.changefreqs['locations']
         elif isinstance(page, contents.Page):
@@ -140,23 +145,46 @@ class SitemapGenerator(object):
             pri = self.priorities['indexes']
             chfreq = self.changefreqs['indexes']
 
-
         if self.format == 'xml':
-            fd.write(XML_URL.format(self.siteurl, page.url, lastmod, chfreq, pri))
+            fd.write(XML_URL.format(self.siteurl, page.url,
+                                    lastmod, chfreq, pri))
+            if hasattr(page, 'article_count'):
+                paginate = collections.namedtuple('p', ['number'])
+                pages = int(math.ceil(
+                    page.article_count /
+                    float(self.context['DEFAULT_PAGINATION'])))
+                if pages > 1:
+                    for p in range(2, pages + 1):
+                        paginate.number = p
+                        fd.write(XML_URL.format(
+                            self.siteurl,
+                            page.paginated_url(paginate),
+                            lastmod,
+                            chfreq,
+                            pri))
         else:
-            fd.write(self.siteurl + '/' + loc + '\n')
-
+            fd.write(self.siteurl + '/' + page.url + '\n')
 
     def generate_output(self, writer):
-        path = os.path.join(self.output_path, 'sitemap.{0}'.format(self.format))
+        path = os.path.join(self.output_path,
+                            'sitemap.{0}'.format(self.format))
+
+        for category, articles in self.context['categories']:
+            category.article_count = len(articles)
+        for tag, articles in self.context['tags']:
+            tag.article_count = len(articles)
+        for author, articles in self.context['authors']:
+            author.article_count = len(articles)
 
         pages = self.context['pages'] + self.context['articles'] \
-                + [ c for (c, a) in self.context['categories']] \
-                + [ t for (t, a) in self.context['tags']] \
-                + [ a for (a, b) in self.context['authors']]
+            + [c for (c, a) in self.context['categories']] \
+            + [t for (t, a) in self.context['tags']] \
+            + [a for (a, b) in self.context['authors']]
 
-        if self.context.has_key('all_locations'):
-            pages += self.context['all_locations']
+        if 'location_articles' in self.context:
+            for location, articles in self.context['location_articles']:
+                location.article_count = len(articles)
+            pages += [l for (l, b) in self.context['location_articles']]
 
         for article in self.context['articles']:
             pages += article.translations

@@ -191,17 +191,17 @@ class SitemapGenerator(object):
 
         info('writing {0}'.format(path))
 
+        FakePage = collections.namedtuple('FakePage',
+                                          ['status',
+                                           'date',
+                                           'url'])
+
         with open(path, 'w', encoding='utf-8') as fd:
 
             if self.format == 'xml':
                 fd.write(XML_HEADER)
             else:
                 fd.write(TXT_HEADER.format(self.siteurl))
-
-            FakePage = collections.namedtuple('FakePage',
-                                              ['status',
-                                               'date',
-                                               'url'])
 
             for standard_page_url in ['']:
                 fake = FakePage(status='published',
@@ -211,6 +211,18 @@ class SitemapGenerator(object):
 
             for page in pages:
                 self.write_url(page, fd)
+
+            if 'index' in self.context['PAGINATED_DIRECT_TEMPLATES']:
+                page_count = int(math.ceil(
+                    len(self.context['articles']) /
+                    float(self.context['DEFAULT_PAGINATION'])))
+                if page_count > 1:
+                    pattern = self.context['INDEX_PAGINATED_URL']
+                    for p in range(2, page_count + 1):
+                        fake = FakePage(status='published',
+                                        date=self.now,
+                                        url=pattern.format(page=p))
+                        self.write_url(fake, fd)
 
             if self.format == 'xml':
                 fd.write(XML_FOOTER)
